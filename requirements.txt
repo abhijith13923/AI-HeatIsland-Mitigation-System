@@ -1,2 +1,6 @@
 pandas
 requests
+scikit-learn
+joblib
+numpy
+streamlit
