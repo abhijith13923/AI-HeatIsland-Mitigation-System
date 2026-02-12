@@ -1,9 +1,8 @@
 """
 app.py
 ──────
-Streamlit frontend for UHI Severity Prediction.
-Fetches real-time weather data from OpenWeather API and predicts UHI severity.
-Enhanced UI with Map & Custom Locations.
+Streamlit frontend for Heat Island Severity Score Predictor.
+"Catchy" green-themed UI for sustainable development focus.
 """
 
 import streamlit as st
@@ -17,72 +16,112 @@ import time
 # 🎨 CONFIG & STYLES
 # -------------------------------------------------
 st.set_page_config(
-    page_title="Urban Heat Island Predictor",
-    page_icon="🏙️",
+    page_title="Heat Island Severity Score",
+    page_icon="�",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for a modern, dark-themed UI
+# Custom CSS for "Sustainable Green" Theme
 st.markdown("""
     <style>
     /* Global Styles */
     .stApp {
-        background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
-        color: #ffffff;
+        background: linear-gradient(135deg, #051a1a 0%, #0e2f2a 50%, #1b4d3e 100%);
+        background-attachment: fixed;
+        color: #e0f2f1;
     }
     
-    /* Card Styling */
+    /* Headings */
+    h1, h2, h3 {
+        color: #a7ffeb !important;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* Card Styling (Glassmorphism) */
     .metric-card {
-        background: rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.05);
         border-radius: 16px;
         padding: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(82, 255, 168, 0.2);
         backdrop-filter: blur(10px);
         text-align: center;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     .metric-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 8px 15px rgba(82, 255, 168, 0.15);
+        border-color: rgba(82, 255, 168, 0.5);
     }
     .metric-value {
-        font_size: 2.5rem;
+        font_size: 2.2rem;
         font-weight: 700;
-        background: -webkit-linear-gradient(45deg, #00d4ff, #00ffaa);
+        background: -webkit-linear-gradient(90deg, #69f0ae, #00e676);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
     .metric-label {
-        font_size: 1rem;
-        color: #cfcfcf;
+        font_size: 0.9rem;
+        color: #b9f6ca;
         margin-top: 5px;
         font-weight: 500;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 1.2px;
+    }
+    
+    /* Button Styling */
+    .stButton>button {
+        background: linear-gradient(90deg, #00c853 0%, #64dd17 100%);
+        color: #003300;
+        border: none;
+        border-radius: 25px;
+        font-weight: bold;
+        font-size: 1.1rem;
+        padding: 0.5rem 2rem;
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 15px rgba(100, 221, 23, 0.6);
     }
     
     /* Result Styling */
     .result-box {
-        background: rgba(0, 0, 0, 0.3);
+        background: rgba(0, 20, 10, 0.4);
         border-radius: 20px;
         padding: 30px;
-        margin-top: 20px;
+        margin-top: 25px;
         text-align: center;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(167, 255, 235, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+    .result-box::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 4px;
+        background: linear-gradient(90deg, #00e676, #00b0ff);
     }
     .severity-text {
         font-size: 3.5rem;
         font-weight: 800;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        text-shadow: 0 4px 10px rgba(0,0,0,0.6);
+        margin: 10px 0;
     }
-    
+
     /* Severity Colors */
-    .sev-0 { color: #00ffaa; } /* Low */
-    .sev-1 { color: #ffe600; } /* Moderate */
-    .sev-2 { color: #ffaa00; } /* High */
-    .sev-3 { color: #ff0055; } /* Extreme */
+    .sev-0 { color: #69f0ae; } /* Low (Green/Safe) */
+    .sev-1 { color: #ffff00; } /* Moderate (Yellow) */
+    .sev-2 { color: #ffab40; } /* High (Orange) */
+    .sev-3 { color: #ff5252; } /* Extreme (Red) */
+    
+    /* Map Container */
+    .map-container {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 2px solid rgba(255,255,255,0.1);
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -103,11 +142,11 @@ LOCATIONS = {
     "Pune": {"urban": {"lat": 18.524609, "lon": 73.878624}, "rural": {"lat": 18.501054, "lon": 73.513765}},
     "Bhopal": {"urban": {"lat": 23.259933, "lon": 77.412615}, "rural": {"lat": 23.203240, "lon": 77.084404}},
     "Nagpur": {"urban": {"lat": 21.145800, "lon": 79.088155}, "rural": {"lat": 20.847410, "lon": 79.324693}},
-    "Kochi": {"urban": {"lat": 9.9312, "lon": 76.2673}, "rural": {"lat": 9.8760, "lon": 76.2800}},  # Added Kochi
+    "Kochi": {"urban": {"lat": 9.9312, "lon": 76.2673}, "rural": {"lat": 9.8760, "lon": 76.2800}},
 }
 
 SEVERITY_MAP = {
-    0: ("NEGLIGIBLE / LOW", "sev-0"),
+    0: ("SAFE / LOW", "sev-0"),
     1: ("MODERATE", "sev-1"),
     2: ("HIGH", "sev-2"),
     3: ("EXTREME", "sev-3")
@@ -138,36 +177,42 @@ def fetch_weather(lat, lon, api_key):
 # -------------------------------------------------
 # 🖥️ UI MAIN
 # -------------------------------------------------
-st.title("🏙️ UHI Severity Predictor")
-st.markdown("### Real-time Urban Heat Island Intelligence")
-
 # Sidebar
 with st.sidebar:
-    st.header("⚙️ Configuration")
-    api_key_input = st.text_input("OpenWeather API Key", type="password", value=os.getenv("OPENWEATHER_API_KEY", ""))
+    st.image("https://cdn-icons-png.flaticon.com/512/3209/3209931.png", width=60)
+    st.title("Settings")
     
-    st.info("ℹ️ Enter your OpenWeather API Key to fetch live data. If you have an environment variable `OPENWEATHER_API_KEY` set, it will be pre-filled.")
+    st.markdown("---")
+    api_key_input = st.text_input("🔑 OpenWeather API Key", type="password", value=os.getenv("OPENWEATHER_API_KEY", ""))
     
+    st.caption("Enter key to fetch real-time climate data.")
     if not api_key_input:
-        st.warning("⚠️ API Key is required!")
+        st.warning("API Key needed!")
         st.stop()
+        
+    st.markdown("### 🌍 About")
+    st.info("Predicting Urban Heat Island intensity to promote sustainable city planning. Green cities are cool cities! 🌳")
 
-# Layout: 2 Columns (Inputs | Map)
-col_left, col_right = st.columns([1, 1.5], gap="large")
+# Main Content
+st.title("🌿 Heat Island Severity Score")
+st.markdown("##### AI-Powered Sustainability Intelligence")
 
-with col_left:
-    st.subheader("📍 Location Selection")
-    location_mode = st.radio("Select Mode:", ["Predefined City", "Custom Coordinates"], horizontal=True)
+# Layout: Inputs on top, then results
+col_input, col_map = st.columns([1, 1], gap="medium")
+
+with col_input:
+    st.markdown("### 📍 Location Context")
+    location_mode = st.radio("Choose Input Mode:", ["Select City", "Custom Coordinates"], horizontal=True)
 
     selected_coords = {}
     
-    if location_mode == "Predefined City":
-        city_name = st.selectbox("Select City", list(LOCATIONS.keys()), index=0)
+    if location_mode == "Select City":
+        city_name = st.selectbox("Choose a City:", list(LOCATIONS.keys()), index=0)
         selected_coords = LOCATIONS[city_name]
-        st.success(f"Selected: **{city_name}**")
+        st.success(f"Scanning: **{city_name}**")
         
     else:
-        st.markdown("#### Custom Coordinates")
+        st.markdown("#### Enter Coordinates")
         c1, c2 = st.columns(2)
         with c1:
             u_lat = st.number_input("Urban Lat", value=0.0, format="%.4f")
@@ -180,32 +225,31 @@ with col_left:
             "urban": {"lat": u_lat, "lon": u_lon},
             "rural": {"lat": r_lat, "lon": r_lon}
         }
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    predict_btn = st.button("🌱 ANALYZE SUSTAINABILITY SCORE", use_container_width=True)
 
-    predict_btn = st.button("🚀 Analyze & Predict", use_container_width=True)
-
-
-# Map Logic
-map_data = pd.DataFrame([
-    {"lat": selected_coords["urban"]["lat"], "lon": selected_coords["urban"]["lon"], "Type": "Urban", "Color": "#FF0000"},
-    {"lat": selected_coords["rural"]["lat"], "lon": selected_coords["rural"]["lon"], "Type": "Rural", "Color": "#00FF00"},
-])
-
-with col_right:
-    st.subheader("🗺️ Geospatial View")
-    st.map(map_data, color="Color", size=20, zoom=9)
+with col_map:
+    # Map Logic
+    map_data = pd.DataFrame([
+        {"lat": selected_coords["urban"]["lat"], "lon": selected_coords["urban"]["lon"], "Type": "Urban (Heat Source)", "Color": "#ff5252"}, # Red
+        {"lat": selected_coords["rural"]["lat"], "lon": selected_coords["rural"]["lon"], "Type": "Rural (Ref Point)", "Color": "#69f0ae"},   # Green
+    ])
+    st.markdown("### 🗺️ Geospatial View")
+    st.map(map_data, color="Color", size=100, zoom=10)
 
 
 # -------------------------------------------------
-# 🔍 PREDICTION LOGIC
+# 🔍 PREDICTION & METRICS
 # -------------------------------------------------
 if predict_btn:
-    with st.spinner("Fetching live satellite weather data..."):
+    with st.spinner("🛰️ Analyzing satellite data & calculating indices..."):
         # Fetch Data
         u_data = fetch_weather(selected_coords["urban"]["lat"], selected_coords["urban"]["lon"], api_key_input)
         r_data = fetch_weather(selected_coords["rural"]["lat"], selected_coords["rural"]["lon"], api_key_input)
         
         if not u_data or not r_data:
-            st.error("❌ Failed to fetch weather data. Please check your API Key and coordinates.")
+            st.error("❌ Failed to fetch climate data. Verify coordinates & API Key.")
         else:
             # Extract features
             u_temp = u_data["main"]["temp"]
@@ -215,29 +259,34 @@ if predict_btn:
             clouds = u_data["clouds"]["all"]
             uhi_intensity = round(u_temp - r_temp, 2)
             
-            # --- RESULTS SECTION ---
-            st.divider()
-            st.subheader("📊 Live Environmental Metrics")
+            # --- RESULTS ---
+            st.markdown("---")
+            st.subheader("📊 Environmental Impact Metrics")
             
-            # Row 1: Temperatures
-            rm1, rm2, rm3 = st.columns(3)
-            with rm1:
-                st.markdown(f'<div class="metric-card"><div class="metric-value">{u_temp}°C</div><div class="metric-label">Urban Temp</div></div>', unsafe_allow_html=True)
-            with rm2:
-                st.markdown(f'<div class="metric-card"><div class="metric-value">{r_temp}°C</div><div class="metric-label">Rural Temp</div></div>', unsafe_allow_html=True)
-            with rm3:
-                st.markdown(f'<div class="metric-card"><div class="metric-value">{uhi_intensity}°C</div><div class="metric-label">UHI Intensity</div></div>', unsafe_allow_html=True)
+            # 3 Columns for primary metrics
+            m1, m2, m3 = st.columns(3)
+            with m1:
+                st.markdown(f'<div class="metric-card"><div class="metric-value">{u_temp}°C</div><div class="metric-label">🏙️ Urban Temp</div></div>', unsafe_allow_html=True)
+            with m2:
+                st.markdown(f'<div class="metric-card"><div class="metric-value">{r_temp}°C</div><div class="metric-label">🌳 Rural Temp</div></div>', unsafe_allow_html=True)
+            with m3:
+                # Colorize UHI intensity
+                uhi_color = "#ff5252" if uhi_intensity > 2 else "#69f0ae"
+                st.markdown(f'<div class="metric-card" style="border-color: {uhi_color};"><div class="metric-value" style="color: {uhi_color};">{uhi_intensity}°C</div><div class="metric-label">🔥 UHI Intensity</div></div>', unsafe_allow_html=True)
             
-            st.write("") # Spacer
+            st.markdown("<br>", unsafe_allow_html=True)
             
-            # Row 2: Atmosphere
-            rm4, rm5, rm6 = st.columns(3)
-            with rm4:
-                st.markdown(f'<div class="metric-card"><div class="metric-value">{humidity}%</div><div class="metric-label">Humidity</div></div>', unsafe_allow_html=True)
-            with rm5:
-                st.markdown(f'<div class="metric-card"><div class="metric-value">{wind_speed} m/s</div><div class="metric-label">Wind Speed</div></div>', unsafe_allow_html=True)
-            with rm6:
-                st.markdown(f'<div class="metric-card"><div class="metric-value">{clouds}%</div><div class="metric-label">Cloud Cover</div></div>', unsafe_allow_html=True)
+            # Secondary metrics row
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.markdown(f"**💧 Humidity:** {humidity}%")
+                st.progress(min(humidity, 100))
+            with c2:
+                st.markdown(f"**🌬️ Wind Speed:** {wind_speed} m/s")
+                st.progress(min(int(wind_speed * 10), 100))
+            with c3:
+                st.markdown(f"**☁️ Cloud Cover:** {clouds}%")
+                st.progress(min(clouds, 100))
 
             # --- PREDICTION ---
             model = load_model()
@@ -251,10 +300,15 @@ if predict_btn:
                 
                 st.markdown(f"""
                     <div class="result-box">
-                        <h2 style="color: #bbb; margin-bottom: 10px;">PREDICTED SEVERITY</h2>
+                        <h3 style="color: #b9f6ca; margin-bottom: 0;">HEAT ISLAND SEVERITY SCORE</h3>
                         <div class="severity-text {sev_class}">{sev_label}</div>
-                        <p style="color: #888; margin-top: 10px;">Severity Level: {prediction}</p>
+                        <p style="color: #80cbc4; font-size: 1.1rem;">Impact Level: {prediction} / 3</p>
                     </div>
                 """, unsafe_allow_html=True)
+                
+                if prediction >= 2:
+                    st.warning("⚠️ High Urban Heat Island effect detected. Consider planting more trees and increasing green cover!")
+                else:
+                    st.success("✅ Sustainable temperature levels maintained. Good urban planning!")
             else:
-                st.error("⚠️ Model file (uhi_model.pkl) not found. Please train the model first.")
+                st.error("⚠️ Model file not found.")
