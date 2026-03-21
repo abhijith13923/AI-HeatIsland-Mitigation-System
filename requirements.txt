@@ -4,3 +4,7 @@ scikit-learn
 joblib
 numpy
 streamlit
+tensorflow
+imbalanced-learn
+matplotlib
+seaborn

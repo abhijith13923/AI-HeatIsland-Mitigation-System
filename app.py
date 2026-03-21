@@ -13,6 +13,7 @@ import os
 import time
 from datetime import datetime
 import numpy as np
+import tensorflow as tf
 
 # -------------------------------------------------
 # 🎨 CONFIG & STYLES
@@ -329,9 +330,11 @@ SEVERITY_MAP = {
 # -------------------------------------------------
 @st.cache_resource
 def load_model():
-    if not os.path.exists("uhi_model.pkl"):
-        return None
-    return joblib.load("uhi_model.pkl")
+    if not os.path.exists("uhi_model.keras") or not os.path.exists("scaler.pkl"):
+        return None, None
+    model = tf.keras.models.load_model("uhi_model.keras")
+    scaler = joblib.load("scaler.pkl")
+    return model, scaler
 
 # -------------------------------------------------
 # 🌤️ API FETCHER
@@ -624,13 +627,15 @@ if predict_btn:
                 st.markdown("</div></div>", unsafe_allow_html=True)
 
             # --- PREDICTION - Enhanced ---
-            model = load_model()
-            if model:
+            model, scaler = load_model()
+            if model and scaler:
                 # Features: [urban_temp, rural_temp, humidity, wind_speed, clouds, uhi_intensity]
                 features = pd.DataFrame([[u_temp, r_temp, humidity, wind_speed, clouds, uhi_intensity]], 
                                         columns=["urban_temp", "rural_temp", "humidity", "wind_speed", "clouds", "uhi_intensity"])
                 
-                prediction = model.predict(features)[0]
+                features_scaled = scaler.transform(features)
+                prediction_prob = model.predict(features_scaled)
+                prediction = int(np.argmax(prediction_prob, axis=1)[0])
                 sev_label, sev_class, sev_desc = SEVERITY_MAP.get(prediction, ("UNKNOWN", "", ""))
                 
                 # Enhanced result display
@@ -700,7 +705,7 @@ if predict_btn:
                     st.markdown("</div>", unsafe_allow_html=True)
                 
             else:
-                st.error("⚠️ Model file 'uhi_model.pkl' not found. Please ensure it exists in the root directory.")
+                st.error("⚠️ Model file 'uhi_model.keras' or 'scaler.pkl' not found. Please ensure they exist in the root directory.")
 else:
     # Welcome message when no prediction yet
     st.markdown("""
