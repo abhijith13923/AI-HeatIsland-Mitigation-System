@@ -14,6 +14,7 @@ import time
 from datetime import datetime
 import numpy as np
 import tensorflow as tf
+import google.generativeai as genai
 
 # -------------------------------------------------
 # 🎨 CONFIG & STYLES
@@ -27,273 +28,108 @@ st.set_page_config(
 
 # Custom CSS for "Sustainable Green" Theme - Enhanced
 st.markdown("""
-    <style>
+        <style>
     /* Import Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
     
     /* Global Styles */
     .stApp {
-        background: linear-gradient(135deg, #031010 0%, #0a2a24 40%, #124538 100%);
-        background-attachment: fixed;
-        color: #e0f2f1;
-        font-family: 'Poppins', sans-serif;
+        background-color: #09090b;
+        color: #fafafa;
+        font-family: 'Inter', sans-serif;
     }
     
-    /* Hide Streamlit Branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* Headings */
-    h1, h2, h3, h4, h5, h6 {
-        color: #ccfff2 !important;
-        font-family: 'Poppins', sans-serif !important;
-        font-weight: 600 !important;
-        letter-spacing: -0.5px;
+    /* Card Enhancements */
+    .metric-card, .result-box, .map-container {
+        background: #18181b;
+        border-radius: 16px;
+        border: 1px solid #27272a;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
     }
     
-    h1 {
-        background: linear-gradient(90deg, #b9f6ca, #a7ffeb);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 800 !important;
-        font-size: 3.2rem !important;
-        margin-bottom: 0 !important;
-    }
-    
-    /* Card Styling - Enhanced Glassmorphism */
     .metric-card {
-        background: rgba(20, 60, 45, 0.25);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-radius: 24px;
-        padding: 25px 15px;
-        border: 1px solid rgba(82, 255, 168, 0.15);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .metric-card::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-        transition: left 0.7s ease;
-    }
-    
-    .metric-card:hover::after {
-        left: 100%;
+        padding: 24px;
+        transition: all 0.2s ease-in-out;
     }
     
     .metric-card:hover {
-        transform: translateY(-8px) scale(1.02);
-        box-shadow: 0 15px 40px rgba(0, 230, 118, 0.15);
-        border-color: rgba(82, 255, 168, 0.4);
-        background: rgba(30, 80, 60, 0.35);
+        transform: translateY(-2px);
+        border-color: #3b82f6;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.5);
     }
     
     .metric-value {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         font-weight: 800;
-        background: linear-gradient(135deg, #b9f6ca, #69f0ae);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #4ade80;
         line-height: 1.2;
-        text-shadow: 0 0 20px rgba(105, 240, 174, 0.3);
     }
     
     .metric-label {
         font-size: 0.85rem;
-        color: #b9f6ca;
-        margin-top: 10px;
+        color: #a1a1aa;
+        margin-top: 8px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 2px;
-        opacity: 0.9;
+        letter-spacing: 1px;
     }
     
-    /* Button Styling - Enhanced */
-    .stButton>button {
-        background: linear-gradient(145deg, #00c853, #64dd17);
-        color: #031010;
-        border: none;
-        border-radius: 50px;
-        font-weight: 700;
-        font-size: 1.2rem;
-        padding: 0.8rem 2.5rem;
-        transition: all 0.4s;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        box-shadow: 0 10px 20px rgba(0, 200, 83, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .stButton>button::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.3);
-        transform: translate(-50%, -50%);
-        transition: width 0.6s, height 0.6s;
-    }
-    
-    .stButton>button:hover::before {
-        width: 300px;
-        height: 300px;
-    }
-    
-    .stButton>button:hover {
-        transform: scale(1.08);
-        box-shadow: 0 0 30px rgba(100, 221, 23, 0.6);
-        color: #000;
-    }
-    
-    /* Result Box - Premium */
+    /* Result Box */
     .result-box {
-        background: linear-gradient(145deg, rgba(10, 50, 35, 0.7), rgba(5, 30, 20, 0.8));
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-radius: 40px;
         padding: 40px 20px;
         margin-top: 30px;
-        border: 1px solid rgba(167, 255, 235, 0.2);
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-    }
-    
-    .result-box::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #00e676, #00b0ff, #00e676);
-        background-size: 200% 100%;
-        animation: gradientMove 3s ease infinite;
-    }
-    
-    @keyframes gradientMove {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
+        text-align: center;
+        background: linear-gradient(145deg, #18181b, #09090b);
     }
     
     .severity-text {
         font-size: 4.5rem;
         font-weight: 900;
-        text-shadow: 0 4px 20px rgba(0,0,0,0.6);
         margin: 15px 0;
-        letter-spacing: 4px;
-        animation: pulse 2s infinite;
+        letter-spacing: 2px;
+        text-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
     
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.02); }
-        100% { transform: scale(1); }
+    /* Severity Colors */
+    .sev-0 { color: #4ade80 !important; }
+    .sev-1 { color: #fbbf24 !important; }
+    .sev-2 { color: #f97316 !important; }
+    .sev-3 { color: #ef4444 !important; }
+    
+    /* Button Styling */
+    .stButton>button {
+        background: linear-gradient(90deg, #3b82f6, #4ade80) !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
+        padding: 0.75rem 2rem !important;
+        transition: all 0.3s ease !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+        box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39) !important;
     }
     
-    /* Severity Colors - More Vibrant */
-    .sev-0 { 
-        color: #69f0ae !important;
-        text-shadow: 0 0 30px rgba(105, 240, 174, 0.5) !important;
-    }
-    .sev-1 { 
-        color: #ffd600 !important;
-        text-shadow: 0 0 30px rgba(255, 214, 0, 0.5) !important;
-    }
-    .sev-2 { 
-        color: #ff9100 !important;
-        text-shadow: 0 0 30px rgba(255, 145, 0, 0.5) !important;
-    }
-    .sev-3 { 
-        color: #ff1744 !important;
-        text-shadow: 0 0 30px rgba(255, 23, 68, 0.5) !important;
+    .stButton>button:hover {
+        background: linear-gradient(90deg, #2563eb, #22c55e) !important;
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5) !important;
+        color: #ffffff !important;
+        transform: translateY(-2px) !important;
     }
     
     /* Sidebar Styling */
     .css-1d391kg, .css-1lcbmhc {
-        background: rgba(8, 40, 30, 0.8);
-        backdrop-filter: blur(20px);
+        background: #09090b;
+        border-right: 1px solid #27272a;
     }
     
-    /* Progress Bars */
     .stProgress > div > div {
-        background: linear-gradient(90deg, #00e676, #69f0ae);
-        border-radius: 10px;
-    }
-    
-    /* Select Box */
-    .stSelectbox, .stRadio {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 15px;
-        padding: 10px;
-        border: 1px solid rgba(105, 240, 174, 0.2);
-    }
-    
-    /* Map Container */
-    .map-container {
-        border-radius: 24px;
-        overflow: hidden;
-        border: 2px solid rgba(105, 240, 174, 0.2);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    }
-    
-    /* Leaf Icon Animation */
-    @keyframes float {
-        0% { transform: translateY(0px) rotate(0deg); }
-        50% { transform: translateY(-10px) rotate(5deg); }
-        100% { transform: translateY(0px) rotate(0deg); }
-    }
-    
-    .leaf-icon {
-        animation: float 3s ease-in-out infinite;
-    }
-    
-    /* Custom Divider */
-    .custom-divider {
-        height: 2px;
-        background: linear-gradient(90deg, transparent, #69f0ae, #00e676, #69f0ae, transparent);
-        margin: 30px 0;
-    }
-    
-    /* Tooltip */
-    .tooltip {
-        position: relative;
-        display: inline-block;
-    }
-    
-    .tooltip .tooltiptext {
-        visibility: hidden;
-        background: rgba(0, 0, 0, 0.8);
-        color: #fff;
-        border-radius: 6px;
-        padding: 5px 10px;
-        position: absolute;
-        z-index: 1;
-    }
-    
-    /* Temperature Glow Effect */
-    .temp-glow {
-        animation: glow 2s ease-in-out infinite alternate;
-    }
-    
-    @keyframes glow {
-        from { filter: drop-shadow(0 0 5px rgba(105, 240, 174, 0.3)); }
-        to { filter: drop-shadow(0 0 15px rgba(105, 240, 174, 0.7)); }
+        background: linear-gradient(90deg, #3b82f6, #4ade80);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -364,14 +200,17 @@ with st.sidebar:
     
     # Animated gradient border
     st.markdown("""
-        <div style="background: linear-gradient(145deg, #0a3a2a, #052018); border-radius: 20px; padding: 20px; border: 1px solid rgba(105,240,174,0.2);">
+        <div style="background: #18181b; border-radius: 16px; padding: 20px; border: 1px solid #27272a;">
     """, unsafe_allow_html=True)
     
     api_key_input = st.text_input("🔑 OpenWeather API Key", type="password", value=os.getenv("OPENWEATHER_API_KEY", ""), 
                                    help="Enter your API key to access real-time weather data")
     
+    gemini_key_input = st.text_input("✨ Gemini API Key", type="password", value=os.getenv("GEMINI_API_KEY", ""), 
+                                   help="Enter Google Gemini API key for Generative AI insights")
+    
     if not api_key_input:
-        st.warning("⚠️ API Key Required")
+        st.warning("⚠️ OpenWeather API Key Required")
         st.markdown('<p style="font-size:0.8rem; color:#b9f6ca;">Get your free API key from OpenWeather</p>', unsafe_allow_html=True)
         st.stop()
     
@@ -386,14 +225,14 @@ with st.sidebar:
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
-            <div style="background: rgba(105,240,174,0.1); border-radius: 15px; padding: 15px; text-align: center;">
+            <div style="background: #27272a; border-radius: 12px; padding: 15px; text-align: center; border: 1px solid #3f3f46;">
                 <p style="font-size: 0.8rem; color: #b9f6ca;">CO₂ SAVED</p>
                 <p style="font-size: 1.5rem; font-weight: 700; color: #69f0ae;">284kg</p>
             </div>
         """, unsafe_allow_html=True)
     with col2:
         st.markdown("""
-            <div style="background: rgba(105,240,174,0.1); border-radius: 15px; padding: 15px; text-align: center;">
+            <div style="background: #27272a; border-radius: 12px; padding: 15px; text-align: center; border: 1px solid #3f3f46;">
                 <p style="font-size: 0.8rem; color: #b9f6ca;">TREES PLANTED</p>
                 <p style="font-size: 1.5rem; font-weight: 700; color: #69f0ae;">142</p>
             </div>
@@ -408,23 +247,22 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
 # Main Content - Enhanced
-col_title1, col_title2 = st.columns([3, 1])
-with col_title1:
-    st.title("🌿 Urban Heat Island Severity")
-    st.markdown('<p style="font-size: 1.2rem; color: #b9f6ca; margin-top: -15px;">AI-Powered Environmental Intelligence for Sustainable Cities</p>', unsafe_allow_html=True)
-
-with col_title2:
-    st.markdown('<div style="background: rgba(105,240,174,0.1); border-radius: 30px; padding: 15px; text-align: center;">📊 LIVE</div>', unsafe_allow_html=True)
-
-# Custom Divider
-st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
+st.markdown("""
+<div style="text-align: center; margin-bottom: 30px;">
+    <h1 style="background: linear-gradient(90deg, #4ade80, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 3.5rem; font-weight: 800; margin-bottom: 0;">🌿 Urban Heat Island Severity</h1>
+    <p style="color: #a1a1aa; font-size: 1.2rem; font-weight: 400; margin-top: 5px;">AI-Powered Environmental Intelligence for Sustainable Cities</p>
+    <div style="display: inline-block; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.5); color: #60a5fa; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; letter-spacing: 1px; margin-top: 10px;">
+        🔴 LIVE ANALYSIS
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # Layout: Inputs on top, then results
 col_input, col_map = st.columns([1, 1], gap="large")
 
 with col_input:
     st.markdown("""
-        <div style="background: rgba(20, 60, 45, 0.3); border-radius: 30px; padding: 25px; border: 1px solid rgba(105,240,174,0.1);">
+        <div style="background: #18181b; border-radius: 16px; padding: 25px; border: 1px solid #27272a;">
     """, unsafe_allow_html=True)
     
     st.markdown("### 📍 Location Configuration")
@@ -482,7 +320,7 @@ with col_map:
     ])
     
     st.markdown("""
-        <div style="background: rgba(20, 60, 45, 0.3); border-radius: 30px; padding: 20px; border: 1px solid rgba(105,240,174,0.1);">
+        <div style="background: #18181b; border-radius: 16px; padding: 20px; border: 1px solid #27272a;">
     """, unsafe_allow_html=True)
     
     st.markdown("### 🗺️ Thermal Mapping View")
@@ -592,7 +430,7 @@ if predict_btn:
             
             with col1:
                 st.markdown("""
-                    <div style="background: rgba(20, 60, 45, 0.2); border-radius: 20px; padding: 20px;">
+                    <div style="background: #18181b; border-radius: 16px; padding: 20px; border: 1px solid #27272a;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="font-size: 2rem;">💧</span>
                             <div style="flex: 1;">
@@ -604,7 +442,7 @@ if predict_btn:
             
             with col2:
                 st.markdown("""
-                    <div style="background: rgba(20, 60, 45, 0.2); border-radius: 20px; padding: 20px;">
+                    <div style="background: #18181b; border-radius: 16px; padding: 20px; border: 1px solid #27272a;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="font-size: 2rem;">🌬️</span>
                             <div style="flex: 1;">
@@ -616,7 +454,7 @@ if predict_btn:
             
             with col3:
                 st.markdown("""
-                    <div style="background: rgba(20, 60, 45, 0.2); border-radius: 20px; padding: 20px;">
+                    <div style="background: #18181b; border-radius: 16px; padding: 20px; border: 1px solid #27272a;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="font-size: 2rem;">☁️</span>
                             <div style="flex: 1;">
@@ -637,6 +475,14 @@ if predict_btn:
                 prediction_prob = model.predict(features_scaled)
                 prediction = int(np.argmax(prediction_prob, axis=1)[0])
                 sev_label, sev_class, sev_desc = SEVERITY_MAP.get(prediction, ("UNKNOWN", "", ""))
+                
+                st.markdown("<br><h3>📊 Prediction Probabilities</h3>", unsafe_allow_html=True)
+                prob_df = pd.DataFrame(
+                    prediction_prob[0], 
+                    index=["0: SAFE", "1: MODERATE", "2: HIGH", "3: EXTREME"], 
+                    columns=["Probability"]
+                )
+                st.bar_chart(prob_df, use_container_width=True)
                 
                 # Enhanced result display
                 st.markdown(f"""
@@ -688,7 +534,7 @@ if predict_btn:
                     trees_needed = round(uhi_intensity * 1.8)
                     
                     st.markdown("""
-                        <div style="background: rgba(20, 60, 45, 0.3); border-radius: 20px; padding: 25px;">
+                        <div style="background: #18181b; border-radius: 16px; padding: 25px; border: 1px solid #27272a;">
                             <h4 style="color: #b9f6ca; margin-bottom: 15px;">🌱 Sustainability Impact</h4>
                     """, unsafe_allow_html=True)
                     
@@ -704,14 +550,40 @@ if predict_btn:
                     
                     st.markdown("</div>", unsafe_allow_html=True)
                 
+                if gemini_key_input:
+                    with st.spinner("🤖 Generating AI geographical & mitigation insights..."):
+                        try:
+                            genai.configure(api_key=gemini_key_input)
+                            gen_model = genai.GenerativeModel('gemini-1.5-flash')
+                            
+                            prompt = f"""
+                            You are an environmental expert AI.
+                            Location: {city_name if location_mode == "🏙️ Select City" else "Custom Coordinates"}
+                            Coordinates: Latitude {selected_coords['urban']['lat']}, Longitude {selected_coords['urban']['lon']}
+                            Urban Heat Island Severity Predicted: Level {prediction} / 3 ({sev_label})
+                            Prediction Confidence: {prediction_prob[0][prediction]:.2%}
+                            Surface Temperature: {u_temp}°C
+                            
+                            Please provide:
+                            1. A brief description of the geography of this place and how it might contribute to the heat island effect.
+                            2. 3-4 specific and effective ways to balance or mitigate this heat island severity level.
+                            
+                            Keep the tone professional yet accessible. Output formatted nicely in Markdown.
+                            """
+                            response = gen_model.generate_content(prompt)
+                            
+                            st.markdown("---")
+                            st.markdown("### ✨ AI Environment Analyst")
+                            st.markdown(f'<div style="background: #18181b; padding: 30px; border-radius: 16px; border: 1px solid #3b82f6; box-shadow: 0 4px 20px rgba(59, 130, 246, 0.1);">\\n\\n{response.text}\\n\\n</div>', unsafe_allow_html=True)
+                        except Exception as e:
+                            st.error(f"Generative AI request failed: {str(e)}")
+                            
             else:
                 st.error("⚠️ Model file 'uhi_model.keras' or 'scaler.pkl' not found. Please ensure they exist in the root directory.")
 else:
     # Welcome message when no prediction yet
     st.markdown("""
-        <div style="background: linear-gradient(145deg, rgba(20,80,60,0.2), rgba(10,50,40,0.2)); 
-                    border-radius: 30px; padding: 40px; text-align: center; margin-top: 40px;
-                    border: 1px solid rgba(105,240,174,0.1);">
+        <div style="background: #18181b; border-radius: 20px; padding: 40px; text-align: center; margin-top: 40px; border: 1px solid #27272a;">
             <span style="font-size: 5rem; animation: float 3s ease-in-out infinite; display: inline-block;">🌍</span>
             <h2 style="color: #b9f6ca; margin-top: 20px;">Ready to Assess Urban Heat Impact</h2>
             <p style="color: #80cbc4; font-size: 1.2rem; max-width: 600px; margin: 20px auto;">

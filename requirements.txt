@@ -8,3 +8,4 @@ tensorflow
 imbalanced-learn
 matplotlib
 seaborn
+google-generativeai
