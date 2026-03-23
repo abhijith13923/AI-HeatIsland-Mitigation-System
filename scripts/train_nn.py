@@ -15,7 +15,7 @@ import os
 print("TensorFlow Version:", tf.__version__)
 
 # 1. Load Data
-df = pd.read_csv("uhi_india_dataset.csv")
+df = pd.read_csv("data/uhi_india_dataset.csv")
 FEATURE_COLS = ["urban_temp", "rural_temp", "humidity", "wind_speed", "clouds", "uhi_intensity"]
 TARGET_COL = "severity_label"
 
@@ -77,8 +77,8 @@ ax2.set_xlabel('Epochs')
 ax2.set_ylabel('Loss')
 ax2.legend()
 
-plt.savefig('training_curves.png')
-print("Saved training_curves.png")
+plt.savefig('assets/training_curves.png')
+print("Saved assets/training_curves.png")
 
 # Confusion Matrix Plot
 y_pred_prob = model.predict(X_test_scaled)
@@ -92,13 +92,13 @@ sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
 plt.title('Confusion Matrix')
 plt.ylabel('True Label')
 plt.xlabel('Predicted Label')
-plt.savefig('confusion_matrix.png')
-print("Saved confusion_matrix.png")
+plt.savefig('assets/confusion_matrix.png')
+print("Saved assets/confusion_matrix.png")
 
 print("Classification Report:")
 print(classification_report(y_test, y_pred))
 
 # 7. Save Model & Scaler
-model.save("uhi_model.keras")
-joblib.dump(scaler, "scaler.pkl")
-print("Saved UHI Model to uhi_model.keras and Scaler to scaler.pkl")
+model.save("models/uhi_model.keras")
+joblib.dump(scaler, "models/scaler.pkl")
+print("Saved UHI Model to models/uhi_model.keras and Scaler to models/scaler.pkl")

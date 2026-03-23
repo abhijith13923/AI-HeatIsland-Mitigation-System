@@ -10,7 +10,7 @@ from datetime import datetime
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
 class UHIDataLoader:
-    def __init__(self, csv_file="uhi_india_dataset.csv", api_key=None):
+    def __init__(self, csv_file="data/uhi_india_dataset.csv", api_key=None):
         self.csv_file = csv_file
         self.api_key = api_key
         if not self.api_key:

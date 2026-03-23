@@ -21,7 +21,7 @@ jobs:
         run: pip install pandas requests
 
       - name: Run collector
-        run: python uhi_collector.py
+        run: python scripts/uhi_collector.py
         env:
           OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
 
@@ -29,6 +29,6 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add uhi_india_dataset.csv
+          git add data/uhi_india_dataset.csv
           git commit -m "Auto-update UHI data" || exit 0
           git push

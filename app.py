@@ -142,10 +142,10 @@ st.markdown("""
 # -------------------------------------------------
 @st.cache_resource
 def load_model():
-    if not os.path.exists("uhi_model.keras") or not os.path.exists("scaler.pkl"):
+    if not os.path.exists("models/uhi_model.keras") or not os.path.exists("models/scaler.pkl"):
         return None, None
-    model = tf.keras.models.load_model("uhi_model.keras")
-    scaler = joblib.load("scaler.pkl")
+    model = tf.keras.models.load_model("models/uhi_model.keras")
+    scaler = joblib.load("models/scaler.pkl")
     return model, scaler
 
 SEVERITY_MAP = {
@@ -357,7 +357,7 @@ if predict_btn:
                     st.error(f"GenAI Integration Error: {str(e)}")
                     
     else:
-        st.error("⚠️ Environment error: 'uhi_model.keras' and/or 'scaler.pkl' are not present in the workspace.")
+        st.error("⚠️ Environment error: 'models/uhi_model.keras' and/or 'models/scaler.pkl' are not present.")
 else:
     # Empty State Call to Action
     st.markdown("""
