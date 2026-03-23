@@ -41,7 +41,6 @@ st.markdown("""
     /* Hide default elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
     
     /* Metrics and Cards */
     .metric-card, .result-box, .input-container {
