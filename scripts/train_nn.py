@@ -14,8 +14,17 @@ import os
 
 print("TensorFlow Version:", tf.__version__)
 
+# Compute paths relative to this script so it runs from any working directory
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(script_dir)
+data_path = os.path.join(project_root, "data", "uhi_india_dataset.csv")
+assets_dir = os.path.join(project_root, "assets")
+models_dir = os.path.join(project_root, "models")
+os.makedirs(assets_dir, exist_ok=True)
+os.makedirs(models_dir, exist_ok=True)
+
 # 1. Load Data
-df = pd.read_csv("data/uhi_india_dataset.csv")
+df = pd.read_csv(data_path)
 FEATURE_COLS = ["urban_temp", "rural_temp", "humidity", "wind_speed", "clouds", "uhi_intensity"]
 TARGET_COL = "severity_label"
 
@@ -77,8 +86,8 @@ ax2.set_xlabel('Epochs')
 ax2.set_ylabel('Loss')
 ax2.legend()
 
-plt.savefig('assets/training_curves.png')
-print("Saved assets/training_curves.png")
+plt.savefig(os.path.join(assets_dir, 'training_curves.png'))
+print(f"Saved {os.path.join(assets_dir, 'training_curves.png')}")
 
 # Confusion Matrix Plot
 y_pred_prob = model.predict(X_test_scaled)
@@ -92,13 +101,13 @@ sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
 plt.title('Confusion Matrix')
 plt.ylabel('True Label')
 plt.xlabel('Predicted Label')
-plt.savefig('assets/confusion_matrix.png')
-print("Saved assets/confusion_matrix.png")
+plt.savefig(os.path.join(assets_dir, 'confusion_matrix.png'))
+print(f"Saved {os.path.join(assets_dir, 'confusion_matrix.png')}")
 
 print("Classification Report:")
 print(classification_report(y_test, y_pred))
 
 # 7. Save Model & Scaler
-model.save("models/uhi_model.keras")
-joblib.dump(scaler, "models/scaler.pkl")
-print("Saved UHI Model to models/uhi_model.keras and Scaler to models/scaler.pkl")
+model.save(os.path.join(models_dir, "uhi_model.keras"))
+joblib.dump(scaler, os.path.join(models_dir, "scaler.pkl"))
+print(f"Saved UHI Model to {os.path.join(models_dir, 'uhi_model.keras')} and Scaler to {os.path.join(models_dir, 'scaler.pkl')}")

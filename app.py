@@ -16,6 +16,9 @@ import tensorflow as tf
 import google.generativeai as genai
 import matplotlib.pyplot as plt
 import seaborn as sns
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # -------------------------------------------------
 # 🎨 CONFIG & STYLES
@@ -167,15 +170,7 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Optional Gemini Setup
-    st.markdown("""
-        <div style="background: #151821; border-radius: 16px; padding: 20px; border: 1px solid #2d313b;">
-    """, unsafe_allow_html=True)
-    
-    st.markdown("<p style='font-size: 0.9rem; color: #a3a8b4; font-weight: bold;'>🧠 Enable AI Insights</p>", unsafe_allow_html=True)
-    gemini_key_input = st.text_input("Gemini API Key (Optional)", type="password", value=os.getenv("GEMINI_API_KEY", ""), 
-                                   help="Enter Google Gemini API key for Generative AI insights")
-    st.markdown("</div>", unsafe_allow_html=True)
+    gemini_key_input = os.getenv("GEMINI_API_KEY", "")
     
     st.markdown("---")
     
@@ -240,48 +235,50 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 
 # -------------------------------------------------
-# 🔍 PREDICTION RESULTS
+#PREDICTION RESULTS
 # -------------------------------------------------
 if predict_btn:
-    st.markdown('<div style="text-align: center; margin: 40px 0;">', unsafe_allow_html=True)
-    st.markdown('<h2 class="sub-gradient-text">Analysis Dashboard</h2>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Progress Bar animation
-    progress_bar = st.progress(0)
-    for i in range(100):
-        progress_bar.progress(i + 1)
-        time.sleep(0.005)
-    progress_bar.empty()
-    
+    # 1. Run the Prediction First
     model, scaler = load_model()
     if model and scaler:
-        # Features ordering must match model training format: ["urban_temp", "rural_temp", "humidity", "wind_speed", "clouds", "uhi_intensity"]
         features = pd.DataFrame(
             [[float(u_temp), float(r_temp), float(humidity), float(wind_speed), float(clouds), float(uhi_intensity)]], 
             columns=["urban_temp", "rural_temp", "humidity", "wind_speed", "clouds", "uhi_intensity"]
         )
-        
-        # Make prediction
         features_scaled = scaler.transform(features)
         prediction_prob = model.predict(features_scaled)
         prediction = int(np.argmax(prediction_prob, axis=1)[0])
         sev_label, sev_class, sev_desc = SEVERITY_MAP.get(prediction, ("UNKNOWN", "sev-0", "N/A"))
+
+        # 2. Get Gemini's Opinion BEFORE rendering the UI
+        ai_opinion = "API Key required for deep analysis."
+        if gemini_key_input:
+            try:
+                genai.configure(api_key=gemini_key_input)
+                # Using a faster model for the dashboard summary
+                gen_model = genai.GenerativeModel('gemini-flash-latest')
+                response = gen_model.generate_content(f"In 2 sentences, explain why a UHI intensity of {uhi_intensity}°C with {humidity}% humidity is dangerous and suggest one urban fix.")
+                ai_opinion = response.text
+            except Exception as e:
+                ai_opinion = f"AI service error: {str(e)}"
+
+        # 3. Now render the UI with the AI opinion injected
+        import html
+        ai_opinion_html = html.escape(ai_opinion.strip()).replace('\n', '<br>')
         
-        # Result Layout: Risk Level vs Probabilities
         r1, r2 = st.columns([1.2, 1])
         
         with r1:
             st.markdown(f"""
                 <div class="result-box" style="border-radius: 20px; border: 1px solid #2d313b; padding: 40px; position: relative; overflow: hidden; height: 100%;">
                     <div style="position: absolute; top: -20px; right: -20px; font-size: 10rem; opacity: 0.05;">🌡️</div>
-                    <div style="font-size: 1rem; color: #94a3b8; font-weight: 700; letter-spacing: 2px;">NEURAL NETWORK FORECAST</div>
-                    <div class="severity-text {sev_class}" style="font-size: 4rem;">Level {prediction}: {sev_label}</div>
-                    <p style="color: #cbd5e1; font-size: 1.2rem; margin: 20px 0; max-width: 80%; margin-left: auto; margin-right: auto;">{sev_desc}</p>
+                    <div style="font-size: 0.8rem; color: #94a3b8; font-weight: 700; letter-spacing: 2px;">NEURAL NETWORK FORECAST</div>
+                    <div class="severity-text {sev_class}" style="font-size: 3.5rem; margin: 10px 0;">Level {prediction}: {sev_label}</div>
+                    <p style="color: #cbd5e1; font-size: 1.1rem; margin-bottom: 20px;">{sev_desc}</p>
                     
-                    <div style="display: flex; justify-content: center; gap: 15px; margin-top: 30px;">
-                        <span style="background: rgba(255,255,255,0.05); padding: 5px 15px; border-radius: 30px; font-size: 0.9rem; border: 1px solid #334155;">Model: DNN Env. Classifier</span>
-                        <span style="background: rgba(255,255,255,0.05); padding: 5px 15px; border-radius: 30px; font-size: 0.9rem; border: 1px solid #334155;">{datetime.now().strftime('%Y-%m-%d %H:%M')}</span>
+                    <div style="background: rgba(168, 85, 247, 0.1); border-left: 3px solid #a855f7; padding: 15px; border-radius: 8px; text-align: left;">
+                        <p style="color: #a855f7; font-weight: bold; font-size: 0.8rem; margin: 0 0 5px 0; text-transform: uppercase;">✨ Gemini Recommendation</p>
+                        <p style="color: #e2e8f0; font-size: 0.9rem; line-height: 1.5; margin: 0; font-style: italic;">"{ai_opinion_html}"</p>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
